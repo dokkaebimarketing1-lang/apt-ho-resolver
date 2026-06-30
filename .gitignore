@@ -1,0 +1,42 @@
+# Environment
+.env
+
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test cache
+.pytest_cache/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local database
+*.db
+*.db-wal
+*.db-shm
+
+# Log files
+*.log
+
+# V-World SHP (large)
+(연속수치지형도)건물_서울/
+
+# Generated HTML
+scripts/*.html
+
+# Large data directories
+건축HUB_대용량데이터/
+참고자료/
+데이터_원본/
