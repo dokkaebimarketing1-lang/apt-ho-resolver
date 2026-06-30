@@ -1,5 +1,8 @@
 # apt-ho-resolver — 작업 상태 (마지막: 2026-06-30)
 
+## 🔗 GitHub
+https://github.com/dokkaebimarketing1-lang/apt-ho-resolver
+
 ## 📊 완료된 것
 - ✅ 33/33 todos 완료 (코드 + 테스트)
 - ✅ 629 tests passing, mypy 0 errors
