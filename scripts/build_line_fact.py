@@ -45,5 +45,5 @@ for i, (cid, cnt) in enumerate(complexes):
         print(f"  {i+1}/{len(complexes)} ({cid[:20]}) {total_lines} lines | {elapsed:.0f}s | ETA {eta:.0f}min", flush=True)
 
 db.commit()
-print(f"\nDone: {total_lines} rows in {time.time()-t0:.0f}s")
+print(f"\nDone: {total_lines} rows in {time.time()-t0:.0f}s", flush=True)
 db.close()

@@ -1,5 +1,6 @@
 # Environment
 .env
+.env.*
 
 # Virtual environment
 .venv/
@@ -40,3 +41,17 @@ scripts/*.html
 건축HUB_대용량데이터/
 참고자료/
 데이터_원본/
+
+# SECRETS — 평문 API 키 포함 (절대 커밋 금지)
+부동산_공공API_정리.md
+API키_전체복사본.txt
+
+# Tooling / session artifacts
+.omo/
+.omc/
+.codegraph/
+.playwright-mcp/
+.claude/
+
+# Office docs
+*.pptx
