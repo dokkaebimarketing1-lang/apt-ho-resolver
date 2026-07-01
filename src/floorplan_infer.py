@@ -125,28 +125,67 @@ def infer_line_type(units: list[dict[str, Any]]) -> dict[str, str]:
     return result
 
 
-def infer_line_direction(line_facts: dict[str, str]) -> dict[str, str]:
-    """(라인, 향) 매핑 추론 - 같은 라인은 같은 향.
+def infer_line_direction(
+    line_facts: dict[str, str],
+    building_shape: str | None = None,
+) -> dict[str, str]:
+    """(라인, 향) 매핑 추론 — 라인 수에 따라 2·3·4향 자동 대응.
 
-    휴리스틱: 라인을 번호순 정렬 후 전반부=S(남향), 후반부=N(북향).
-    한국 아파트에서 남향이 선호되며 낮은 라인 번호에 배정되는 관행 반영.
+    한국 아파트 관행:
+    - 판상형(짝수 라인, 계단식): 전반부=S, 후반부=N (예: 01/02=S, 03/04=N)
+    - Y자형(3라인): 01=S(정남), 02=SE(남동), 03=SW(남서) — 번호순 시계방향
+    - T자형(3라인): 01=S(정남), 02=E(동), 03=W(서)
+    - 口자형(4라인 이상): 01=S, 02=E, 03=W, 04=N — 시계방향
 
     Args:
-        line_facts: ``{라인: 타입}`` 딕셔너리 (``infer_line_type`` 출력).
+        line_facts: ``{라인: 타입}`` 딕셔너리.
+        building_shape: 건물 형태 힌트 (``"flat"``/``"tower"``/``"y"``/``"t"``).
+            None이면 라인 수로 자동 판단.
 
     Returns:
-        ``{라인: 향코드}`` 딕셔너리 (예: ``{"01": "S", "02": "N"}``).
+        ``{라인: 향코드}`` 딕셔너리.
     """
     if not line_facts:
         return {}
 
     sorted_lines = sorted(line_facts.keys(), key=int)
-    mid = (len(sorted_lines) + 1) // 2  # ceil(n/2) -> 남향
+    n = len(sorted_lines)
 
-    return {
-        line: ("S" if idx < mid else "N")
-        for idx, line in enumerate(sorted_lines)
-    }
+    if n <= 2:
+        # 1~2라인: 단순 S/N
+        return {
+            line: "S" if idx < (n + 1) // 2 else "N"
+            for idx, line in enumerate(sorted_lines)
+        }
+
+    elif n == 3:
+        # 3라인: Y자형(S/SE/SW) 또는 T자형(S/E/W)
+        if building_shape in ("t", "tower"):
+            directions = ["S", "E", "W"]
+        else:
+            directions = ["S", "SE", "SW"]  # default Y자형
+        return dict(zip(sorted_lines, directions))
+
+    elif n == 4:
+        # 4라인: 판상형(S/S/N/N) or 口자형(S/E/W/N)
+        if building_shape in ("square", "tower"):
+            directions = ["S", "E", "W", "N"]
+        else:
+            mid = n // 2
+            directions = ["S"] * mid + ["N"] * (n - mid)
+        return dict(zip(sorted_lines, directions))
+
+    elif n == 5:
+        # 5라인: 전반부 S, 후반부 N, 중간 라인은 SE
+        mid = n // 2
+        directions = ["S"] * mid + ["SE"] + ["N"] * (n - mid - 1)
+        return dict(zip(sorted_lines, directions))
+
+    else:
+        # 6라인 이상: 균등 분할 S/N
+        mid = n // 2
+        directions = ["S"] * mid + ["N"] * (n - mid)
+        return dict(zip(sorted_lines, directions))
 
 
 def _is_sequential_numbering(units: list[dict[str, Any]]) -> bool:
@@ -189,6 +228,7 @@ def _is_sequential_numbering(units: list[dict[str, Any]]) -> bool:
 
 def infer_floorplan(
     units: list[dict[str, Any]],
+    building_shape: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """전체 역추론 파이프라인.
 
@@ -197,13 +237,15 @@ def infer_floorplan(
 
     파이프라인:
     1. 동별 그룹화
-    2. 순차 번호 체계 감지 -> 해당 시 ``None`` 반환
+    2. 순차 번호 체계 감지 → 해당 시 ``None`` 반환
     3. 라인별 타입 추론 (면적 클러스터링)
-    4. 라인별 향 추론 (위치 기반 휴리스틱)
+    4. 라인별 향 추론 (2·3·4향 자동 대응, building_shape 힌트)
     5. 결과 조립 (동x라인 조합당 1개 엔트리, ``is_estimate=True``)
 
     Args:
         units: 전유부 단위 리스트.
+        building_shape: 건물 형태 힌트 (``"flat"``/``"y"``/``"t"``/``"tower"``/``"square"``).
+            None이면 라인 수로 자동 판단.
 
     Returns:
         역추론 결과 리스트. 순차 번호 체계 단지거나 빈 입력이면 ``None``.
@@ -228,8 +270,8 @@ def infer_floorplan(
         if not line_types:
             continue
 
-        # 향 추론
-        line_directions = infer_line_direction(line_types)
+        # 향 추론 (건물형태 전달)
+        line_directions = infer_line_direction(line_types, building_shape)
 
         # 결과 조립 - (dong, line) 조합당 1개 엔트리
         seen: set[str] = set()
